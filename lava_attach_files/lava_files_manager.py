@@ -11,14 +11,16 @@ def run_batch():
 
     attach_files(source_files_root_path="public/items_pics",
                  destination_doctype="Item",
-                 destination_root_path= "/public/files",
-                 id_field_name="name")
+                 destination_root_path="/public/files",
+                 id_field_name="name",
+                 main_file_field_name= None)
 
 
 # the source files has set of folders; each folder name is the doctype id
 # all the files under tha folder will be attached to the doctype with that id
 # the first file will be set as the main file (i.e.: employee profile pic, item's pic)
-def attach_files(source_files_root_path: str, destination_root_path: str, destination_doctype: str, id_field_name: str):
+def attach_files(source_files_root_path: str, destination_root_path: str,
+                 destination_doctype: str, id_field_name: str, main_file_field_name: str = None):
     limit_page_start = 0
     limit_page_length = 100
     while True:
@@ -39,7 +41,7 @@ def attach_files(source_files_root_path: str, destination_root_path: str, destin
                             if first_file:
                                 add_file_to_doc(file_path=destination_file_path,
                                                 destination_doctype=destination_doctype,
-                                                field_name=id_field_name)
+                                                field_name=main_file_field_name)
                                 first_file = False
                             else:
                                 add_file_to_doc(file_path=destination_file_path,
