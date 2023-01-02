@@ -1,0 +1,18 @@
+include MANIFEST.in
+include requirements.txt
+include *.json
+include *.md
+include *.py
+include *.txt
+recursive-include lava_attach_files *.css
+recursive-include lava_attach_files *.csv
+recursive-include lava_attach_files *.html
+recursive-include lava_attach_files *.ico
+recursive-include lava_attach_files *.js
+recursive-include lava_attach_files *.json
+recursive-include lava_attach_files *.md
+recursive-include lava_attach_files *.png
+recursive-include lava_attach_files *.py
+recursive-include lava_attach_files *.svg
+recursive-include lava_attach_files *.txt
+recursive-exclude lava_attach_files *.pyc
