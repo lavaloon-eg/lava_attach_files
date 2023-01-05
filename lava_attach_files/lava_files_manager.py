@@ -71,10 +71,10 @@ def attach_files(source_files_root_path: str, destination_root_path: str,
 
 def add_file_to_doc(file_path: str, destination_doctype: str, doc_id: str, field_name: str = "image",
                     attachment_field_name: str = "attachment", is_private: int = 0, is_primary_file: bool = False):
-    file_url = get_file_url(file_full_path=file_path)
-    folder = get_parent_directory_path(file_path)
-    file_name = get_file_name(file_path)
 
+    folder = 'Home/Attachments'
+    file_name = get_file_name(file_path)
+    file_url = get_file_url(file_full_path=file_path, file_name=file_name)
     file_doc = frappe.new_doc("File")
     file_doc.is_private = is_private
     file_doc.folder = folder
@@ -132,13 +132,13 @@ def get_parent_directory_path(file_path: str):
     return parent_directory_path
 
 
-def get_file_url(file_full_path: str, is_private: int = 0):
+def get_file_url(file_full_path: str, file_name: str, is_private: int = 0):
     site_name = frappe.utils.get_url()
     file_url = ""
     if is_private:
-        file_url = f"{site_name}/{file_full_path.lstrip('/private/files/')}"
+        file_url = f"{site_name}/private/files/{file_name}"
     else:
-        file_url = f"{site_name}/{file_full_path.lstrip('/public/files/')}"
+        file_url = f"{site_name}/public/files/{file_name}"
 
     file_url = file_url.replace('/./', '/')
     return file_url
