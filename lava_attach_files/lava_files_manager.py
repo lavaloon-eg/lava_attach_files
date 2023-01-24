@@ -1,4 +1,5 @@
 import sys
+from typing import List, Dict
 
 import frappe
 import os
@@ -10,10 +11,16 @@ import shutil
 # the first file will be set as the main file (i.e.: employee profile pic, item's pic)
 def attach_files(source_files_root_path: str, destination_root_path: str,
                  destination_doctype: str, id_field_name: str, main_file_field_name: str = None):
+    if not os.path.exists(source_files_root_path):
+        log_error(f"error: '{source_files_root_path}' folder not found")
+        return
+
+    doc_to_file_map = prepare_doc_to_file_map(source_files_root_path, destination_root_path)
+
     limit_page_start = 0
     limit_page_length = 100
     while True:
-        docs = frappe.get_all(destination_doctype,
+        docs = frappe.get_all(destination_doctype, filters={id_field_name: ['is', 'set']},
                               fields=[id_field_name],
                               limit_start=limit_page_start, limit_page_length=limit_page_length)
         if not docs:
@@ -24,29 +31,46 @@ def attach_files(source_files_root_path: str, destination_root_path: str,
             docname = frappe.db.get_value(destination_doctype, filters={id_field_name: doc[id_field_name]},
                                           fieldname='name')
             try:
-                doc_folder_name = (doc[id_field_name]).upper()
-                source_folder_path = os.path.join(source_files_root_path, doc_folder_name)
-                if not os.path.exists(source_folder_path):
-                    log_error(f"doc id: {doc[id_field_name]},"
-                              f" error: '{source_folder_path}' folder not found")
-                    continue
-
-                files = get_folder_files(folder_path=source_folder_path)
+                files = doc_to_file_map.get(doc[id_field_name], [])
                 for file in files:
-                    is_primary = os.path.splitext(file)[0].endswith('_1')
-                    new_file_name = f"{file}"  # TODO: may need to change the naming based on the case
-                    destination_file_path = os.path.join(destination_root_path, new_file_name)
-                    if copy_file(source_file_path=f"{source_folder_path}/{file}",
-                                 destination_file_path=destination_file_path):
-                        add_file_to_doc(file_path=destination_file_path,
-                                        destination_doctype=destination_doctype,
-                                        doc_id=docname,
-                                        field_name=main_file_field_name,
-                                        is_primary_file=is_primary)
-
+                    is_primary = file['is_primary']
+                    destination_file_path = file['destination_file_path']
+                    add_file_to_doc(file_path=destination_file_path,
+                                    destination_doctype=destination_doctype,
+                                    doc_id=docname,
+                                    field_name=main_file_field_name,
+                                    is_primary_file=is_primary)
             except Exception as ex:
                 log_error(f"doc id: {doc[id_field_name]}, error: {format_exception(ex)}")
         limit_page_start += limit_page_length
+
+
+def prepare_doc_to_file_map(source_files_root_path: str, destination_root_path: str) -> Dict[str, List[dict]]:
+    result = {}
+    files = get_folder_files(source_files_root_path)
+    print(f'Processing {len(files)} file(s)')
+    for index, file in enumerate(files):
+        print(f'File {index + 1}/{len(files)}')
+        filename = os.path.splitext(file)[0]
+        last_underscore_index = filename.rfind('_')
+        if last_underscore_index == -1:
+            log_error(f"Skipping file '{file}' because it contains no underscores")
+            continue
+        key = filename[:last_underscore_index]
+        is_primary = filename.endswith('_1')
+        new_file_name = f"{file}"  # TODO: may need to change the naming based on the case
+        destination_file_path = os.path.join(destination_root_path, new_file_name)
+        if copy_file(source_file_path=os.path.join(source_files_root_path, file),
+                     destination_file_path=destination_file_path):
+            if key not in result:
+                result[key] = []
+            result[key].append({
+                'is_primary': is_primary,
+                'new_file_name': new_file_name,
+                'destination_file_path': destination_file_path
+            })
+
+    return result
 
 
 def add_file_to_doc(file_path: str, destination_doctype: str, doc_id: str, field_name: str = "image",
